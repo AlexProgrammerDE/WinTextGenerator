@@ -182,9 +182,10 @@ checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     filepath=checkpoint_prefix,
     save_weights_only=True)
 
-EPOCHS = 20
+EPOCHS = 1000
 
 history = model.fit(dataset, epochs=EPOCHS, callbacks=[checkpoint_callback])
+
 
 class OneStep(tf.keras.Model):
     def __init__(self, model, chars_from_ids, ids_from_chars, temperature=1.0):
@@ -233,33 +234,24 @@ class OneStep(tf.keras.Model):
 
 one_step_model = OneStep(model, chars_from_ids, ids_from_chars)
 
-start = time.time()
-states = None
-next_char = tf.constant(['DOUBLECHECK'])
-result = [next_char]
+constants = ['DOUBLECHECK', 'FAKE NEWS', 'PISTONMASTER',
+             'ANARCHY', 'SERVER', 'SUCKS', 'BLOCKHOST']
+for constant in constants:
+    print(f'Constant: {constant}')
+    start = time.time()
+    states = None
+    next_char = tf.constant([constant])
+    result = [next_char]
 
-for n in range(1000):
-    next_char, states = one_step_model.generate_one_step(
-        next_char, states=states)
-    result.append(next_char)
+    for n in range(1000):
+        next_char, states = one_step_model.generate_one_step(
+            next_char, states=states)
+        result.append(next_char)
 
-result = tf.strings.join(result)
-end = time.time()
-print(result[0].numpy().decode('utf-8'), '\n\n' + '_'*80)
-print('\nRun time:', end - start)
+    result = tf.strings.join(result)
+    end = time.time()
+    print(result[0].numpy().decode('utf-8'), '\n\n' + '_'*80)
+    print('\nRun time:', end - start)
+    print('\n')
 
-start = time.time()
-states = None
-next_char = tf.constant(
-    ['FAKE NEWS', 'PISTONMASTER', 'ANARCHY', 'SERVER', 'SUCKS'])
-result = [next_char]
-
-for n in range(1000):
-    next_char, states = one_step_model.generate_one_step(
-        next_char, states=states)
-    result.append(next_char)
-
-result = tf.strings.join(result)
-end = time.time()
-print(result, '\n\n' + '_'*80)
-print('\nRun time:', end - start)
+tf.saved_model.save(one_step_model, 'one_step')
